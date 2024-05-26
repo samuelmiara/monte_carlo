@@ -1,0 +1,169 @@
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import quad
+from scipy.optimize import minimize_scalar
+from matplotlib.animation import FuncAnimation
+
+def f(x):
+    """ Funkcja której wartość przybliżamy na odcinku [0,1]"""
+    return np.log(x)*x
+
+def monte_carlo_integration(num_points, f_min, f_max, previous_points,znak=0,n=0):
+    """Funkcja ta realizuje metodę Monte Carlo do przybliżenia wartości całki funkcji f(x).
+     Generuje losowe punkty i sprawdza, czy znajdują się one pod wykresem funkcji.
+     num_points: liczba punktow
+     f_min: wartosc minimalna funkcji
+     f_max: wartosc maksymalna funkcji
+     previous_points: lista wczesniej wygenerowanych punktow
+     return:
+     integral_approximation: przybliżona wartość funkcji
+     points_under_curve: liczba punków pod krzywa
+     """
+    dod,uj=zmienna(f)
+    count_under_curve = 0
+    points_under_curve = previous_points[:]
+    for _ in range(num_points - len(previous_points)):
+        x = random.uniform(0, 1)
+        y = random.uniform(f_min, f_max)
+        if f_max>0 and f_min==0:
+            n=n+1
+            if y <= f(x):
+                count_under_curve += 1
+                points_under_curve.append((x, y, True))
+            else:
+                points_under_curve.append((x, y, False))
+
+        elif f_max==0:
+            n=n+1
+            if y >= f(x):
+                count_under_curve -= 1
+                points_under_curve.append((x, y, True))
+            else:
+                points_under_curve.append((x, y, False))
+
+        else:
+            for xi in range(len(dod)):
+                if x>dod[xi][0] and x<dod[xi][1] and y>=0:
+                    n = n + 1
+                    if y <= f(x):
+
+                        count_under_curve += f_max*(dod[xi][1]-dod[xi][0])
+                        points_under_curve.append((x, y, True))
+                        if y<0:
+                            znak=znak+1
+                        else:
+                            znak = znak -1
+                    else:
+                        points_under_curve.append((x, y, False))
+            for xi in range(len(uj)):
+                if x>uj[xi][0] and x<uj[xi][1] and y<=0:
+                    n = n + 1
+                    if y >= f(x):
+                        count_under_curve += f_min*(uj[xi][1]-uj[xi][0])
+                        points_under_curve.append((x, y, True))
+                        if y < 0:
+                            znak = znak + 1
+                        else:
+                            znak = znak - 1
+                    else:
+                        points_under_curve.append((x, y, False))
+
+    if znak==0:
+        integral_approximation = (f_max - f_min) * count_under_curve / n
+    else:
+        integral_approximation =count_under_curve/ n
+
+    return integral_approximation, points_under_curve
+
+def compute_min_max():
+    """funkcja oblicza wartosc minimalna i maksymalna na przedziale [0,1]
+    return:
+    f_min: wartosc minimalna funkcji
+     f_max: wartosc maksymalna funkcji"""
+    result_max = minimize_scalar(lambda x: -f(x), bounds=(0, 1), method='bounded')
+    maximum = -result_max.fun
+    f_max = maximum
+    result_min = minimize_scalar(f, bounds=(0, 1), method='bounded')
+    minimum = result_min.fun
+    if minimum >= 0:
+        f_min = 0
+    elif minimum < 0 and maximum >= 0:
+        f_min = minimum
+    else:
+        f_min = minimum
+        f_max = 0
+    return f_min, f_max
+
+def zmienna(f,st=-1):
+    """funkcja pomocnicza sprawdzajaca na jakich przedzialach funkcja jest dodatnia i ujemna
+    return:
+    dod: zbiór przedziałow dodatnich
+    uj: zbiór przedziałow ujemnych"""
+    dod,uj,b=[],[],[]
+    for x in range(1000):
+        ch=st
+        if f(x/1000)>0:
+            st=1
+            b.append(x/1000)
+        else:
+            st=0
+            b.append(x / 1000)
+        if ch!=st:
+            if ch==1:
+                dod.append([b[0],b[-1]])
+            else:
+                uj.append([b[0],b[-1]])
+            b.clear()
+    if st==1:
+        dod.append([b[0],b[-1]])
+    else:
+        uj.append([b[0], b[-1]])
+    uj.remove([0.0,0.0])
+    return dod,uj
+
+def update(frame):
+    """Aktualizuje wykres dla animacji."""
+    if frame[0] == 0:
+        return
+    ax.set_title('Monte Carlo Integration')
+    ax.set_xlabel('x')
+    ax.set_ylabel('f(x)')
+    x, y, under_curve = zip(*frame[1])
+    scat.set_offsets(np.column_stack((x, y)))
+    scat.set_color(['red' if under else 'blue' for under in under_curve])
+    approx_text.set_text(f'Approximation: {frame[0]:.4f}')
+
+liczba_punktów=1000
+
+f_min, f_max = compute_min_max()
+true_value, _ = quad(f, 0, 1)
+
+
+fig, ax = plt.subplots()
+x = np.linspace(0, 1, 100)
+y = f(x)
+line, = ax.plot(x, y, 'b-', lw=2)
+scat = ax.scatter([], [], color=[], alpha=0.5)
+approx_text = ax.text(0.95, 0.05, '', transform=ax.transAxes, ha='right', fontsize=14)
+
+
+ax.set_ylim(f_min - 0.1*(f_max - f_min), f_max + 0.1*(f_max - f_min))
+plt.xlim(0, 1)
+
+
+
+frames = []
+previous_points = []
+for i in range(1, 101):
+    approximation, points = monte_carlo_integration(i*liczba_punktów, f_min, f_max, previous_points)
+    frames.append((approximation, points[:]))
+    previous_points = points[:]
+
+
+ani = FuncAnimation(fig, update, frames=frames, blit=False, repeat=False)
+
+plt.show()
+print("wartość przybliżona całki:",approximation)
+print("wartość prawdziwa całki:",true_value)
+print("błąd przybliżenia:",abs(100-(approximation/true_value)*100),"%")
