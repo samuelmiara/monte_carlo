@@ -166,4 +166,4 @@ ani = FuncAnimation(fig, update, frames=frames, blit=False, repeat=False)
 plt.show()
 print("wartość przybliżona całki:",approximation)
 print("wartość prawdziwa całki:",true_value)
-print("błąd przybliżenia:",abs(100-(approximation/true_value)*100),"%")
+
