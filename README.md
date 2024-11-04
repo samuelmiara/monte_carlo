@@ -1,5 +1,3 @@
-# Aproksymacja Całki Metodą Monte Carlo
+# Monte Carlo Integration for Approximating Definite Integrals with Visualization and Animation
 
-
-Projekt implementuje metodę Monte Carlo do przybliżania wartości całek określonych. Skrypt pozwala na
-obliczenie przybliżonej wartości całki z dowolnej funkcji matematycznej podanej przez użytkownika, co stanowi praktyczne zastosowanie technik symulacji i obliczeń statystycznych w Pythonie.
+"The project implements the Monte Carlo method for approximating the values of definite integrals. The script enables calculating an approximate integral value for any mathematical function provided by the user, offering a practical application of simulation and statistical computation techniques in Python."
